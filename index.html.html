@@ -867,9 +867,9 @@
             try {
                 const position = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 300000
+                        enableHighAccuracy: false, // Changed from true - can be slower on mobile
+                        timeout: 15000, // Increased from 10000
+                        maximumAge: 600000 // Increased from 300000 (10 minutes)
                     });
                 });
 
@@ -1109,19 +1109,26 @@
                     'returnGeometry': 'false'
                 });
                 
+                console.log('Calling FEMA API:', `${serviceUrl}?${params}`);
+                console.log('User Agent:', navigator.userAgent);
+                
                 const response = await fetch(`${serviceUrl}?${params}`, {
                     method: 'GET',
                     headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'FloodZoneChecker/1.0'
+                        'Accept': 'application/json'
+                        // Removed User-Agent header as it can cause issues on mobile
                     }
                 });
                 
+                console.log('FEMA API Response Status:', response.status);
+                
                 if (!response.ok) {
+                    console.error('FEMA API Error:', response.status, response.statusText);
                     throw new Error(`ArcGIS request failed: ${response.status}`);
                 }
                 
                 const data = await response.json();
+                console.log('FEMA API Data:', data);
                 
                 if (data.features && data.features.length > 0) {
                     const attributes = data.features[0].attributes;
