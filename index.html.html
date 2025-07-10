@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flood Zone Checker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
     <style>
         * {
             margin: 0;
@@ -1106,25 +1107,29 @@
                     'inSR': '4326',
                     'spatialRel': 'esriSpatialRelIntersects',
                     'outFields': 'FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE,V_DATUM,DEPTH,VELOCITY',
-                    'returnGeometry': 'false'
+                    'returnGeometry': 'false',
+                    'callback': '?' // Sometimes helps with CORS on mobile
                 });
                 
                 console.log('Calling FEMA API:', `${serviceUrl}?${params}`);
                 console.log('User Agent:', navigator.userAgent);
+                console.log('Is Mobile Safari:', /iPad|iPhone|iPod/.test(navigator.userAgent));
                 
                 const response = await fetch(`${serviceUrl}?${params}`, {
                     method: 'GET',
+                    mode: 'cors', // Explicitly set CORS mode
+                    credentials: 'omit', // Don't send credentials
                     headers: {
                         'Accept': 'application/json'
-                        // Removed User-Agent header as it can cause issues on mobile
                     }
                 });
                 
                 console.log('FEMA API Response Status:', response.status);
+                console.log('Response Headers:', [...response.headers.entries()]);
                 
                 if (!response.ok) {
                     console.error('FEMA API Error:', response.status, response.statusText);
-                    throw new Error(`ArcGIS request failed: ${response.status}`);
+                    throw new Error(`ArcGIS request failed: ${response.status} - ${response.statusText}`);
                 }
                 
                 const data = await response.json();
@@ -1175,8 +1180,12 @@
                 };
                 
             } catch (error) {
-                console.error('ArcGIS query error:', error);
-                return { success: false };
+                console.error('ArcGIS query error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                return { success: false, error: error.message };
             }
         }
 
